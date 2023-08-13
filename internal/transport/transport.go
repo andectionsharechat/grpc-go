@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/bits"
 	"net"
 	"sync"
@@ -852,11 +853,17 @@ func ContextErr(err error) error {
 }
 
 func nextLogBase2(v uint32) uint32 {
+	if v > math.MaxInt32 {
+		v = math.MaxInt32
+	}
 	return uint32(bits.Len32(v - 1))
 }
 
 // Log of base two, round down (for v > 0)
 func prevLogBase2(num uint32) uint32 {
+	if num > math.MaxInt32 {
+		num = math.MaxInt32
+	}
 	next := nextLogBase2(num)
 	if num == (1 << uint32(next)) {
 		return next
