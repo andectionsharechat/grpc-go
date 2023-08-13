@@ -55,7 +55,7 @@ type bufferPool struct {
 	pool []sync.Pool
 }
 
-const bucketCount = 5
+const bucketCount = 16
 
 func newBufferPool() *bufferPool {
 	pool := make([]sync.Pool, bucketCount)
