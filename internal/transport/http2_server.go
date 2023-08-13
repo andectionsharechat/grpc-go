@@ -618,7 +618,7 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 			ctxDone: s.ctxDone,
 			recv:    s.buf,
 			freeBuffer: func(buffer *bytes.Buffer) {
-				t.bufferPool.put(s.id, buffer)
+				t.bufferPool.put(buffer)
 			},
 		},
 		windowHandler: func(n int) {
@@ -811,7 +811,7 @@ func (t *http2Server) handleData(f *http2.DataFrame) {
 		// guarantee f.Data() is consumed before the arrival of next frame.
 		// Can this copy be eliminated?
 		if len(f.Data()) > 0 {
-			buffer := t.bufferPool.get(s.id)
+			buffer := t.bufferPool.get(uint32(len(f.Data())))
 			buffer.Reset()
 			buffer.Write(f.Data())
 			s.write(recvMsg{buffer: buffer})

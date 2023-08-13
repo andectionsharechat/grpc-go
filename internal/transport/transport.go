@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/bits"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -53,7 +54,7 @@ type bufferPool struct {
 	pool []sync.Pool
 }
 
-const bucketCount = 256
+const bucketCount = 32
 
 func newBufferPool() *bufferPool {
 	pool := make([]sync.Pool, bucketCount)
@@ -68,12 +69,13 @@ func newBufferPool() *bufferPool {
 		pool: pool,
 	}
 }
-func (p *bufferPool) get(idRequest uint32) *bytes.Buffer {
-	return p.pool[idRequest%bucketCount].Get().(*bytes.Buffer)
+func (p *bufferPool) get(capacity uint32) *bytes.Buffer {
+	return p.pool[nextLogBase2(capacity)].Get().(*bytes.Buffer)
 }
 
-func (p *bufferPool) put(idRequest uint32, b *bytes.Buffer) {
-	p.pool[idRequest%bucketCount].Put(b)
+func (p *bufferPool) put(b *bytes.Buffer) {
+
+	p.pool[prevLogBase2(uint32(b.Len()))].Put(b)
 }
 
 // recvMsg represents the received msg from the transport. All transport
@@ -847,4 +849,17 @@ func ContextErr(err error) error {
 		return status.Error(codes.Canceled, err.Error())
 	}
 	return status.Errorf(codes.Internal, "Unexpected error from context packet: %v", err)
+}
+
+func nextLogBase2(v uint32) uint32 {
+	return uint32(bits.Len32(v - 1))
+}
+
+// Log of base two, round down (for v > 0)
+func prevLogBase2(num uint32) uint32 {
+	next := nextLogBase2(num)
+	if num == (1 << uint32(next)) {
+		return next
+	}
+	return next - 1
 }
