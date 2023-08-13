@@ -71,12 +71,13 @@ func newBufferPool() *bufferPool {
 	}
 }
 func (p *bufferPool) get(capacity uint32) *bytes.Buffer {
-	return p.pool[nextLogBase2(capacity)].Get().(*bytes.Buffer)
+	return new(bytes.Buffer)
+	//return p.pool[nextLogBase2(capacity)].Get().(*bytes.Buffer)
 }
 
 func (p *bufferPool) put(b *bytes.Buffer) {
 
-	p.pool[prevLogBase2(uint32(b.Len()))].Put(b)
+	//p.pool[prevLogBase2(uint32(b.Len()))].Put(b)
 }
 
 // recvMsg represents the received msg from the transport. All transport
