@@ -50,25 +50,30 @@ var ErrNoHeaders = errors.New("stream has no headers")
 const logLevel = 2
 
 type bufferPool struct {
-	pool sync.Pool
+	pool []sync.Pool
 }
 
+const bucketCount = 32
+
 func newBufferPool() *bufferPool {
-	return &bufferPool{
-		pool: sync.Pool{
+	pool := make([]sync.Pool, bucketCount)
+	for i := 0; i < bucketCount; i++ {
+		pool[i] = sync.Pool{
 			New: func() interface{} {
 				return new(bytes.Buffer)
 			},
-		},
+		}
+	}
+	return &bufferPool{
+		pool: pool,
 	}
 }
-
-func (p *bufferPool) get() *bytes.Buffer {
-	return p.pool.Get().(*bytes.Buffer)
+func (p *bufferPool) get(idRequest uint32) *bytes.Buffer {
+	return p.pool[idRequest%bucketCount].Get().(*bytes.Buffer)
 }
 
-func (p *bufferPool) put(b *bytes.Buffer) {
-	p.pool.Put(b)
+func (p *bufferPool) put(idRequest uint32, b *bytes.Buffer) {
+	p.pool[idRequest%bucketCount].Put(b)
 }
 
 // recvMsg represents the received msg from the transport. All transport

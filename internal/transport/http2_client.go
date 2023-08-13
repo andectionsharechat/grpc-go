@@ -19,6 +19,7 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -482,7 +483,9 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *Stream {
 			closeStream: func(err error) {
 				t.CloseStream(s, err)
 			},
-			freeBuffer: t.bufferPool.put,
+			freeBuffer: func(buffer *bytes.Buffer) {
+				t.bufferPool.put(s.id, buffer)
+			},
 		},
 		windowHandler: func(n int) {
 			t.updateWindow(s, uint32(n))
@@ -1100,7 +1103,7 @@ func (t *http2Client) updateFlowControl(n uint32) {
 	})
 }
 
-func (t *http2Client) handleData(f *http2.DataFrame) {
+func (t *http2Client) handleData(streamId uint32, f *http2.DataFrame) {
 	size := f.Header().Length
 	var sendBDPPing bool
 	if t.bdpEst != nil {
@@ -1153,7 +1156,7 @@ func (t *http2Client) handleData(f *http2.DataFrame) {
 		// guarantee f.Data() is consumed before the arrival of next frame.
 		// Can this copy be eliminated?
 		if len(f.Data()) > 0 {
-			buffer := t.bufferPool.get()
+			buffer := t.bufferPool.get(streamId)
 			buffer.Reset()
 			buffer.Write(f.Data())
 			s.write(recvMsg{buffer: buffer})
@@ -1593,6 +1596,7 @@ func (t *http2Client) reader(errCh chan<- error) {
 	for {
 		t.controlBuf.throttle()
 		frame, err := t.framer.fr.ReadFrame()
+
 		if t.keepaliveEnabled {
 			atomic.StoreInt64(&t.lastRead, time.Now().UnixNano())
 		}
@@ -1627,7 +1631,7 @@ func (t *http2Client) reader(errCh chan<- error) {
 		case *http2.MetaHeadersFrame:
 			t.operateHeaders(frame)
 		case *http2.DataFrame:
-			t.handleData(frame)
+			t.handleData(frame.Header().StreamID, frame)
 		case *http2.RSTStreamFrame:
 			t.handleRSTStream(frame)
 		case *http2.SettingsFrame:
