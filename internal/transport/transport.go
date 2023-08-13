@@ -55,7 +55,7 @@ type bufferPool struct {
 	pool []sync.Pool
 }
 
-const bucketCount = 32
+const bucketCount = 5
 
 func newBufferPool() *bufferPool {
 	pool := make([]sync.Pool, bucketCount)
@@ -70,12 +70,12 @@ func newBufferPool() *bufferPool {
 		pool: pool,
 	}
 }
-func (p *bufferPool) get(capacity uint32) *bytes.Buffer {
-	return p.pool[nextLogBase2(capacity)%bucketCount].Get().(*bytes.Buffer)
+func (p *bufferPool) get(id uint32) *bytes.Buffer {
+	return p.pool[id%bucketCount].Get().(*bytes.Buffer)
 }
 
-func (p *bufferPool) put(b *bytes.Buffer) {
-	p.pool[prevLogBase2(uint32(b.Len()))%bucketCount].Put(b)
+func (p *bufferPool) put(id uint32, b *bytes.Buffer) {
+	p.pool[id%bucketCount].Put(b)
 }
 
 // recvMsg represents the received msg from the transport. All transport
