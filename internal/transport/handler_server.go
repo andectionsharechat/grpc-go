@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -127,12 +128,12 @@ func NewServerHandlerTransport(w http.ResponseWriter, r *http.Request, stats []s
 // at this point to be speaking over HTTP/2, so it's able to speak valid
 // gRPC.
 type serverHandlerTransport struct {
-	rw         http.ResponseWriter
-	req        *http.Request
-	timeoutSet bool
-	timeout    time.Duration
-
-	headerMD metadata.MD
+	rw           http.ResponseWriter
+	req          *http.Request
+	timeoutSet   bool
+	timeout      time.Duration
+	nextStreamId uint32
+	headerMD     metadata.MD
 
 	closeOnce sync.Once
 	closedCh  chan struct{} // closed on Close
@@ -370,7 +371,7 @@ func (ht *serverHandlerTransport) HandleStreams(startStream func(*Stream), trace
 	req := ht.req
 
 	s := &Stream{
-		id:             0, // irrelevant
+		id:             atomic.AddUint32(&ht.nextStreamId, 1), // irrelevant
 		requestRead:    func(int) {},
 		cancel:         cancel,
 		buf:            newRecvBuffer(),
