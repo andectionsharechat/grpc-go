@@ -271,6 +271,12 @@ func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport,
 		czData:            new(channelzData),
 		bufferPool:        newBufferPool(),
 	}
+
+	//warming up buffer pool
+	for i := 0; i < 10000; i++ {
+		t.bufferPool.put(uint32(i), new(bytes.Buffer))
+	}
+
 	t.logger = prefixLoggerForServerTransport(t)
 	// Add peer information to the http2server context.
 	t.ctx = peer.NewContext(t.ctx, t.getPeer())
