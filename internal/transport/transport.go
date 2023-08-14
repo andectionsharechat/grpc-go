@@ -57,6 +57,18 @@ type bufferPool struct {
 
 const bucketCount = 128
 
+var sharedBufferPool *bufferPool
+
+func InitSharedBufferPool() {
+	sharedBufferPool = newBufferPool()
+	for i := 0; i < 100000; i++ {
+		sharedBufferPool.put(uint32(i), new(bytes.Buffer))
+	}
+}
+
+func getSharedBufferPool() *bufferPool {
+	return sharedBufferPool
+}
 func newBufferPool() *bufferPool {
 	pool := make([]sync.Pool, bucketCount)
 	for i := 0; i < bucketCount; i++ {
@@ -66,6 +78,7 @@ func newBufferPool() *bufferPool {
 			},
 		}
 	}
+
 	return &bufferPool{
 		pool: pool,
 	}

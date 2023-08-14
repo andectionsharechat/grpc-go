@@ -814,6 +814,8 @@ func (l *listenSocket) Close() error {
 // this method returns.
 // Serve will return a non-nil error unless Stop or GracefulStop is called.
 func (s *Server) Serve(lis net.Listener) error {
+	//warming up buffer pool
+	transport.InitSharedBufferPool()
 	s.mu.Lock()
 	s.printf("serving")
 	s.serve = true

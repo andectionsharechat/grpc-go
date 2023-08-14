@@ -269,12 +269,7 @@ func NewServerTransport(conn net.Conn, config *ServerConfig) (_ ServerTransport,
 		kep:               kep,
 		initialWindowSize: iwz,
 		czData:            new(channelzData),
-		bufferPool:        newBufferPool(),
-	}
-
-	//warming up buffer pool
-	for i := 0; i < 10000; i++ {
-		t.bufferPool.put(uint32(i), new(bytes.Buffer))
+		bufferPool:        getSharedBufferPool(),
 	}
 
 	t.logger = prefixLoggerForServerTransport(t)
