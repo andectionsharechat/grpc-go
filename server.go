@@ -618,11 +618,15 @@ func (s *Server) handleSingleStream(data *serverWorkerData) {
 	defer data.wg.Done()
 	s.handleStream(data.st, data.stream, s.traceInfo(data.st, data.stream))
 }
+func (s *Server) handleResourceExhausted(data *serverWorkerData) {
+	defer data.wg.Done()
+	data.st.WriteStatus(data.stream, status.New(codes.ResourceExhausted, "goroutine pool is exhausted"))
+}
 
 // initServerWorkers creates worker goroutines and a channel to process incoming
 // connections to reduce the time spent overall on runtime.morestack.
 func (s *Server) initServerWorkers() {
-	s.serverWorkerChannel = make(chan *serverWorkerData)
+	s.serverWorkerChannel = make(chan *serverWorkerData, s.opts.numServerWorkers*16)
 	for i := uint32(0); i < s.opts.numServerWorkers; i++ {
 		go s.serverWorker()
 	}
@@ -992,7 +996,8 @@ func (s *Server) serveStreams(st transport.ServerTransport) {
 			case s.serverWorkerChannel <- data:
 				return
 			default:
-				// If all stream workers are busy, fallback to the default code path.
+				//return exhausted error
+				s.handleResourceExhausted(data)
 			}
 		}
 		go func() {
