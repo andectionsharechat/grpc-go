@@ -996,8 +996,11 @@ func (s *Server) serveStreams(st transport.ServerTransport) {
 			case s.serverWorkerChannel <- data:
 				return
 			default:
-				//return exhausted error
-				s.handleResourceExhausted(data)
+				go func() {
+					//return exhausted error
+					s.handleResourceExhausted(data)
+				}()
+				return
 			}
 		}
 		go func() {
