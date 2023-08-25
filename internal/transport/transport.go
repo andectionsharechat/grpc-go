@@ -54,7 +54,7 @@ type bufferPool struct {
 	pool []sync.Pool
 }
 
-var bucketCount = uint32(runtime.NumCPU())
+var bucketCount = uint32(runtime.NumCPU() * 7)
 var sharedBufferPool *bufferPool
 
 func InitSharedBufferPool() {
