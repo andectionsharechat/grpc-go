@@ -27,9 +27,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
-	"math/bits"
 	"net"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -55,13 +54,12 @@ type bufferPool struct {
 	pool []sync.Pool
 }
 
-const bucketCount = 128
-
+var bucketCount = uint32(runtime.NumCPU())
 var sharedBufferPool *bufferPool
 
 func InitSharedBufferPool() {
 	sharedBufferPool = newBufferPool()
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		sharedBufferPool.put(uint32(i), new(bytes.Buffer))
 	}
 }
@@ -71,7 +69,7 @@ func getSharedBufferPool() *bufferPool {
 }
 func newBufferPool() *bufferPool {
 	pool := make([]sync.Pool, bucketCount)
-	for i := 0; i < bucketCount; i++ {
+	for i := uint32(0); i < bucketCount; i++ {
 		pool[i] = sync.Pool{
 			New: func() interface{} {
 				return new(bytes.Buffer)
@@ -862,23 +860,4 @@ func ContextErr(err error) error {
 		return status.Error(codes.Canceled, err.Error())
 	}
 	return status.Errorf(codes.Internal, "Unexpected error from context packet: %v", err)
-}
-
-func nextLogBase2(v uint32) uint32 {
-	if v > math.MaxInt32 {
-		v = math.MaxInt32
-	}
-	return uint32(bits.Len32(v - 1))
-}
-
-// Log of base two, round down (for v > 0)
-func prevLogBase2(num uint32) uint32 {
-	if num > math.MaxInt32 {
-		num = math.MaxInt32
-	}
-	next := nextLogBase2(num)
-	if num == (1 << next) {
-		return next
-	}
-	return next - 1
 }
