@@ -59,7 +59,7 @@ var sharedBufferPool *bufferPool
 
 func InitSharedBufferPool() {
 	sharedBufferPool = newBufferPool()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 100000; i++ {
 		sharedBufferPool.put(uint32(i), new(bytes.Buffer))
 	}
 }
