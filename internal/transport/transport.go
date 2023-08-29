@@ -59,9 +59,16 @@ var sharedBufferPool *bufferPool
 
 func InitSharedBufferPool() {
 	sharedBufferPool = newBufferPool()
+	var wg sync.WaitGroup
 	for i := 0; i < 100000; i++ {
-		sharedBufferPool.put(uint32(i), new(bytes.Buffer))
+		wg.Add(1)
+		ci := i
+		go func() {
+			sharedBufferPool.put(uint32(ci), new(bytes.Buffer))
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 }
 
 func getSharedBufferPool() *bufferPool {
